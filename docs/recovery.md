@@ -10,8 +10,8 @@ Your OpenWrt install, settings and U-Boot (FIP) are untouched; only BL2 needs fi
 
 * 3.3 V USB-UART adapter (GND, TX, RX only; don't connect VCC), on the board's serial
   pads, 115200 8N1.
-* `mtk_uartboot` (981213/mtk_uartboot).
-* From the OpenWrt release directory for your version (mediatek/filogic):
+* `mtk_uartboot`: https://github.com/981213/mtk_uartboot
+* From the OpenWrt release directory for your version, e.g. https://downloads.openwrt.org/releases/25.12.6/targets/mediatek/filogic/ :
   * the RAM BL2: `mt7981-ram-ddr3-bl2.bin` (cudy-ddr3) or `mt7981-ram-ddr4-bl2.bin` (cudy-ddr4)
   * your device's `openwrt-<ver>-mediatek-filogic-<device>-ubootmod-bl31-uboot.fip`
 

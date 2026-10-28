@@ -102,7 +102,9 @@ runtime/
   source/                  kernel module source (upstream, unmodified)
   build-module.sh          build the module against an SDK's kernel
   prebuilt/25.12.6/        mt7981_oc_hold.ko for kernel 6.12.112 (25.12.6)
-docs/                      flashing, runtime module, recovery, building, results
+ci/                        release automation (detect new OpenWrt release, build, verify)
+.github/workflows/         daily build workflow
+docs/                      flashing, runtime module, recovery, building, automation, results
 ```
 
 ## Other OpenWrt versions
@@ -111,13 +113,63 @@ The prebuilt preloader doesn't depend on the kernel, but rebuild it for your rel
 so it matches the U-Boot (FIP) you have. The prebuilt module only loads on kernel 6.12.112
 (25.12.6). For anything else see [docs/building.md](docs/building.md).
 
+## Automated builds
+
+`.github/workflows/build-release.yml` checks the OpenWrt download server daily. When a new
+stable release (25.12.0 or later) appears, it builds and publishes an `oc-<version>` release.
+Each variant's stock preloader must first rebuild byte-identical to the official one, or
+nothing is published. See [docs/automation.md](docs/automation.md).
+
 ## Credits
 
-* Runtime module: Dystopian/openwrt-mt7981-overclock, a fork of
-  rison1337/wr3000s-openwrt-overclock (GPL-2.0-only). Included unmodified.
-* PLL programming approach: WuSiYu's OpenWrt One BL2 overclock write-up and the
-  hanwckf / Yuzhii0718 bl-mt798x projects (whose code clears the POSDIV field).
-* OpenWrt and mtk-openwrt/arm-trusted-firmware.
+* Runtime module: [Dystopian/openwrt-mt7981-overclock](https://github.com/Dystopian/openwrt-mt7981-overclock),
+  a fork of [rison1337/wr3000s-openwrt-overclock](https://github.com/rison1337/wr3000s-openwrt-overclock)
+  (GPL-2.0-only). Included unmodified.
+* PLL programming approach: [WuSiYu's OpenWrt One BL2 overclock guide](https://wusiyu.me/openwrt-one-mt7981-bl2-overclocking-compile-guide/)
+  and the [hanwckf/bl-mt798x](https://github.com/hanwckf/bl-mt798x) /
+  [Yuzhii0718/bl-mt798x-dhcpd](https://github.com/Yuzhii0718/bl-mt798x-dhcpd) projects
+  (whose code clears the POSDIV field).
+* [OpenWrt](https://github.com/openwrt/openwrt) and
+  [mtk-openwrt/arm-trusted-firmware](https://github.com/mtk-openwrt/arm-trusted-firmware).
+
+## References
+
+Everything used to research, build and verify this project.
+
+**OpenWrt release files (25.12.6, mediatek/filogic)**
+- Firmware selector, Cudy WR3000H v1 ubootmod: https://firmware-selector.openwrt.org/?version=25.12.6&target=mediatek%2Ffilogic&id=cudy_wr3000h-v1-ubootmod
+- Release directory (official preloaders, U-Boot FIP, RAM BL2 for recovery, SDK, `sha256sums`): https://downloads.openwrt.org/releases/25.12.6/targets/mediatek/filogic/
+- SDK: https://downloads.openwrt.org/releases/25.12.6/targets/mediatek/filogic/openwrt-sdk-25.12.6-mediatek-filogic_gcc-14.3.0_musl.Linux-x86_64.tar.zst
+- Kernel modules (kernel 6.12.112, hash `f0a7348f…`; `kmod-mtd-rw`): https://downloads.openwrt.org/releases/25.12.6/targets/mediatek/filogic/kmods/6.12.112-1-f0a7348f9cb959e1bf4d0447669b031e/
+- Packages (`coremark`): https://downloads.openwrt.org/releases/25.12.6/packages/aarch64_cortex-a53/packages/
+
+**OpenWrt source**
+- Repository (tag `v25.12.6`): https://github.com/openwrt/openwrt
+- Device and preloader definitions: https://github.com/openwrt/openwrt/blob/openwrt-25.12/target/linux/mediatek/image/filogic.mk
+- TF-A package (variants `mt7981-cudy-ddr3` / `mt7981-cudy-ddr4`, FIP offset, DDR settings): https://github.com/openwrt/openwrt/blob/openwrt-25.12/package/boot/arm-trusted-firmware-mediatek/Makefile
+- WR3000H ubootmod device tree: https://github.com/openwrt/openwrt/blob/openwrt-25.12/target/linux/mediatek/dts/mt7981b-cudy-wr3000h-v1-ubootmod.dts
+- Cudy NAND partition layout (BL2 partition): https://github.com/openwrt/openwrt/blob/openwrt-25.12/target/linux/mediatek/dts/mt7981b-cudy-wr3000-nand.dtsi
+
+**Trusted Firmware-A (MediaTek)**
+- mtk-openwrt/arm-trusted-firmware, commit used by OpenWrt 25.12: https://github.com/mtk-openwrt/arm-trusted-firmware/tree/78a0dfd927bb00ce973a1f8eb4079df0f755887a
+- MT7981 PLL init patched here: https://github.com/mtk-openwrt/arm-trusted-firmware/blob/78a0dfd927bb00ce973a1f8eb4079df0f755887a/plat/mediatek/mt7981/drivers/pll/pll.c
+
+**Overclocking prior work**
+- Runtime overclock module: https://github.com/Dystopian/openwrt-mt7981-overclock
+- Its build notes (register addresses, PLL math): https://github.com/Dystopian/openwrt-mt7981-overclock/blob/main/source/BUILD.md
+- Original WR3000S project: https://github.com/rison1337/wr3000s-openwrt-overclock
+- WuSiYu, OpenWrt One (MT7981) BL2 overclock guide: https://wusiyu.me/openwrt-one-mt7981-bl2-overclocking-compile-guide/
+- Same guide on the Right.com.cn forum (1.7 GHz on OpenWrt One, crash at ~1.76 GHz): https://www.right.com.cn/forum/thread-8409872-1-1.html
+- MT798X 1.65 GHz BL2 overclock thread (Right.com.cn): https://www.right.com.cn/forum/thread-8387979-1-1.html
+- Yuzhii0718/bl-mt798x-dhcpd (OC profiles, POSDIV handling): https://github.com/Yuzhii0718/bl-mt798x-dhcpd
+- Tzzssn/bl-mt798x-dhcpd (fork, OC/VARIANT build options): https://github.com/Tzzssn/bl-mt798x-dhcpd
+- hanwckf/bl-mt798x: https://github.com/hanwckf/bl-mt798x
+- Example CI-built 1.6 GHz DDR3 BL2 (generic layout, not for Cudy ubootmod): https://github.com/wgworldpy/bl-mt798x-dhcpd/releases/tag/2026.10.20-1909-bl2-preloader
+
+**Hardware and tools**
+- MT7981B datasheet (open version, rated 1.3 GHz): https://one.openwrt.org/hardware/MT7981B_Wi-Fi6_Platform_Datasheet_Open_V1.0.pdf
+- mtk_uartboot (serial recovery): https://github.com/981213/mtk_uartboot
+- OpenWrt forum: no cpufreq/DVFS on Filogic SoCs: https://forum.openwrt.org/t/redmi-ax6000-possible-to-build-cpu-governor-into-kernel/143755
 
 ## License
 

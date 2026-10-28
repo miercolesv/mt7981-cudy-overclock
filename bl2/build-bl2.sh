@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Build a Cudy MT7981 ubootmod preloader (BL2) with the OpenWrt SDK.
 #
-# Usage: build-bl2.sh <openwrt-sdk-dir> <openwrt-source-dir> <cudy-ddr3|cudy-ddr4> <MHz|stock> <out-dir>
+# Usage: build-bl2.sh <openwrt-sdk-dir> <openwrt-source-dir> <cudy-ddr3|cudy-ddr4|...> <MHz|stock> <out-dir>
 #   openwrt-sdk-dir     extracted openwrt-sdk-<ver>-mediatek-filogic_*.tar.zst (same release as your firmware)
 #   openwrt-source-dir  git checkout of openwrt at the same tag (only package/boot/arm-trusted-firmware-mediatek is used)
 #
@@ -11,12 +11,12 @@
 set -eu
 sdk=$(cd "${1:?sdk dir}" && pwd -P)
 src=$(cd "${2:?openwrt source dir}" && pwd -P)
-variant=${3:?cudy-ddr3|cudy-ddr4}
+variant=${3:?variant, e.g. cudy-ddr3}
 mhz=${4:?MHz or stock}
 out=${5:?out dir}
 here=$(cd "$(dirname "$0")" && pwd -P)
 
-case "$variant" in cudy-ddr3|cudy-ddr4) ;; *) echo "variant must be cudy-ddr3 or cudy-ddr4" >&2; exit 1;; esac
+case "$variant" in cudy-*) ;; *) echo "variant must be a Cudy TF-A variant (cudy-ddr3, cudy-ddr4, ...)" >&2; exit 1;; esac
 
 pkg="$sdk/package/arm-trusted-firmware-mediatek"
 rm -rf "$pkg"

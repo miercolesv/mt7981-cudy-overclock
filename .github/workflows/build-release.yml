@@ -1,0 +1,109 @@
+name: Build OC release
+
+# OpenWrt has no release webhook, so this checks the download server daily and builds
+# the newest stable release (>= 25.12.0) that doesn't have an "oc-<version>" release yet.
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "OpenWrt version (e.g. 25.12.7). Empty = newest stable"
+        required: false
+        default: ""
+      clocks:
+        description: "Clocks in MHz (multiples of 20, 1320-1800)"
+        required: false
+        default: "1400 1500 1600 1700"
+      force:
+        description: "Rebuild and replace an existing release"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-release
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.detect.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: detect
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          ver="${INPUT_VERSION:-}"
+          [ -n "$ver" ] || ver=$(sh ci/latest-release.sh)
+          if [ -z "$ver" ]; then
+            echo "No published OpenWrt release found."
+          elif [ "${FORCE:-false}" != "true" ] && gh release view "oc-$ver" >/dev/null 2>&1; then
+            echo "Release oc-$ver already exists, nothing to do."
+            ver=""
+          else
+            echo "Will build OpenWrt $ver"
+          fi
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: detect
+    if: needs.detect.outputs.version != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      VER: ${{ needs.detect.outputs.version }}
+      CLOCKS: ${{ inputs.clocks || '1400 1500 1600 1700' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Host packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gawk rsync zstd file python3 python3-dev \
+            python3-setuptools swig libncurses-dev kmod unzip
+
+      - name: Previous release checksums
+        run: |
+          mkdir -p work
+          prev=$(gh release list --limit 50 --json tagName --jq '.[].tagName' | grep -vx "oc-$VER" | head -1 || true)
+          if [ -n "$prev" ]; then
+            echo "Comparing against $prev"
+            gh release download "$prev" -p SHA256SUMS -O work/prev-SHA256SUMS || true
+          fi
+
+      - name: Build and verify
+        run: |
+          WORK="$PWD/work" PREV_SUMS="$PWD/work/prev-SHA256SUMS" \
+            sh ci/build-release.sh "$VER" "$PWD/dist"
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ env.VER }}
+          path: work/log-*.txt
+          if-no-files-found: ignore
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: oc-${{ env.VER }}
+          path: dist/
+
+      - name: Publish release
+        run: |
+          if gh release view "oc-$VER" >/dev/null 2>&1; then
+            gh release delete "oc-$VER" --yes --cleanup-tag
+          fi
+          gh release create "oc-$VER" dist/*.bin dist/*.tar.gz dist/SHA256SUMS \
+            --title "OpenWrt $VER – Cudy MT7981 overclock (auto-built)" \
+            --notes-file dist/RELEASE_NOTES.md

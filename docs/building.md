@@ -8,7 +8,8 @@ Host packages (Debian/Ubuntu): `build-essential gawk rsync zstd file python3 pyt
 ## Preloader (BL2)
 
 ```sh
-git clone --depth 1 -b v25.12.6 <openwrt git> openwrt
+git clone --depth 1 -b v25.12.6 https://github.com/openwrt/openwrt.git openwrt
+# SDK: https://downloads.openwrt.org/releases/25.12.6/targets/mediatek/filogic/
 tar --zstd -xf openwrt-sdk-25.12.6-mediatek-filogic_*.tar.zst && mv openwrt-sdk-25.12.6-* sdk
 
 # 1. Build stock and compare with the official ...-ubootmod-preloader.bin for your device
