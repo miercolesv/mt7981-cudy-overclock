@@ -11,6 +11,22 @@ Two methods, meant to be used in this order:
 2. **Overclocked preloader** (`bl2/`): the official OpenWrt BL2 rebuilt with only the CPU
    PLL setting changed. Permanent: survives reboots, factory resets and sysupgrades.
 
+**EDIT: CHANGING THE CLOCK SPEED WILL MESS WITH TIME AND NTP, WHICH MAKES WIREGUARD AND OTHER MODULES REQUIRING ENCRYPTION STOP WORKING AS INTENDED.** <br> <br>
+I was able to fix it by downloading the image builder https://downloads.openwrt.org/releases/25.12.6/targets/mediatek/filogic/openwrt-imagebuilder-25.12.6-mediatek-filogic.Linux-x86_64.tar.zst then adding: 
+```dts
+&cpu0 {
+	clock-frequency = <1700000000>; // Change to your flashed OC accordingly
+};
+
+&cpu1 {
+	clock-frequency = <1700000000>;
+};
+```
+to the end of `target/linux/mediatek/dts/mt7981b-cudy-tr3000-v1-ubootmod.dts` <br> then running
+**``make image PROFILE=cudy_tr3000-v1-ubootmod``**. <br><br>
+The new sysupdate image will be built to <br>
+`openwrt-imagebuilder-25.12.6-mediatek-filogic.Linux-x86_64/bin/targets/mediatek/filogic/` <br>
+ --- ------
 On a WR3000H v1: coremark 4355 → 5074 at 1.5 GHz (+16.5 %), 5430 at 1.6 GHz (+24.7 %).
 See [docs/results.md](docs/results.md).
 
