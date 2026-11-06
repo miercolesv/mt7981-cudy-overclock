@@ -1,2 +1,5 @@
 out/
 *.log
+docs/node_modules/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
