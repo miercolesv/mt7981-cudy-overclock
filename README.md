@@ -3,6 +3,8 @@
 Overclock the MediaTek MT7981B (Filogic 820) in Cudy routers running OpenWrt with the
 **OpenWrt U-Boot layout ("ubootmod")**, from the stock 1.3 GHz up to 1.4–1.7 GHz.
 
+**Documentation:** https://miercolesv.github.io/mt7981-cudy-overclock/
+
 Two methods, meant to be used in this order:
 
 1. **Runtime module** (`runtime/`): changes the clock while the router runs, nothing is
